@@ -83,6 +83,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var newPlaylistButton: MaterialButton
     private lateinit var playCollectionButton: ImageButton
     private lateinit var progress: LinearProgressIndicator
+    private lateinit var listActions: LinearLayout
     private lateinit var libraryList: RecyclerView
     private lateinit var nowPlayingTitle: TextView
     private lateinit var nowPlayingSubtitle: TextView
@@ -154,6 +155,7 @@ class MainActivity : AppCompatActivity() {
     private var repeatMode: Int = 0
     private var shuffleEnabled: Boolean = false
     private var activeTabButton: MaterialButton? = null
+    private var sectionBeforeSettings: MaterialButton? = null
     private var currentPathLabel: String = "Home"
     private var currentUser: UserProfile? = null
     private var pendingSectionEnterDirection: Int? = null
@@ -267,6 +269,7 @@ class MainActivity : AppCompatActivity() {
         newPlaylistButton = findViewById(R.id.newPlaylistButton)
         playCollectionButton = findViewById(R.id.playCollectionButton)
         progress = findViewById(R.id.progress)
+        listActions = findViewById(R.id.listActions)
         nowPlayingTitle = findViewById(R.id.nowPlayingTitle)
         nowPlayingSubtitle = findViewById(R.id.nowPlayingSubtitle)
         playPauseButton = findViewById(R.id.playPauseButton)
@@ -598,7 +601,21 @@ class MainActivity : AppCompatActivity() {
         inputMethodManager.hideSoftInputFromWindow(queryInput.windowToken, 0)
     }
 
+    private fun closeSearchInput() {
+        queryInput.clearFocus()
+        hideKeyboard()
+    }
+
     private fun navigateToSection(target: Int, focusSearch: Boolean = false) {
+        if (target != 2) {
+            closeSearchInput()
+        }
+        if (settingsPanel.isVisible) {
+            settingsPanel.isVisible = false
+            sectionBeforeSettings = null
+            updateSettingsButtonState()
+        }
+        setLibraryContentVisible(true)
         val current = currentSectionIndex()
         if (target != current) {
             prepareSectionTransition(if (target > current) 1 else -1)
@@ -729,7 +746,7 @@ class MainActivity : AppCompatActivity() {
             .start()
     }
 
-    private fun selectedTabScale(): Float = 1.035f
+    private fun selectedTabScale(): Float = 1.02f
 
     private fun setupBackNavigation() {
         onBackPressedDispatcher.addCallback(
@@ -1142,18 +1159,46 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSettings() {
-        searchPanel.isVisible = false
-        settingsPanel.isVisible = !settingsPanel.isVisible
-        newPlaylistButton.isVisible = false
-        playCollectionButton.isVisible = currentQueue.isNotEmpty() && !settingsPanel.isVisible
-        pathText.text = if (settingsPanel.isVisible) "Settings" else currentPathLabel
-        if (settingsPanel.isVisible) {
+        closeSearchInput()
+        val openingSettings = !settingsPanel.isVisible
+        if (openingSettings) {
+            sectionBeforeSettings = activeTabButton
+            searchPanel.isVisible = false
+            settingsPanel.isVisible = true
+            setLibraryContentVisible(false)
+            newPlaylistButton.isVisible = false
+            playCollectionButton.isVisible = false
+            pathText.text = "Settings"
+            clearSelectedTab()
             loadUserProfile()
             loadHomePath()
+        } else {
+            settingsPanel.isVisible = false
+            setLibraryContentVisible(true)
+            restoreSectionAfterSettings()
         }
+        updateSettingsButtonState()
         updateThemeButtons()
         updateLanguageButtons()
         updateAccentButtons()
+    }
+
+    private fun setLibraryContentVisible(visible: Boolean) {
+        listActions.isVisible = visible
+        libraryList.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun restoreSectionAfterSettings() {
+        val restoredTab = sectionBeforeSettings ?: activeTabButton ?: foldersButton
+        sectionBeforeSettings = null
+        selectedTab(restoredTab)
+        searchPanel.isVisible = restoredTab == searchButton
+        if (!searchPanel.isVisible) {
+            closeSearchInput()
+        }
+        newPlaylistButton.isVisible = restoredTab == playlistsButton
+        playCollectionButton.isVisible = currentQueue.isNotEmpty()
+        pathText.text = currentPathLabel
     }
 
     private fun loadHomePath() {
@@ -1512,6 +1557,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun clearSelectedTab() {
+        activeTabButton = null
+        val ink = ContextCompat.getColor(this, R.color.ink)
+        val edge = edgeColor()
+        sectionButtons().forEach { button ->
+            button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+            button.setTextColor(ink)
+            button.strokeColor = ColorStateList.valueOf(edge)
+            button.strokeWidth = dp(1)
+            button.elevation = 0f
+            button.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .translationY(0f)
+                .setDuration(140L)
+                .setInterpolator(sectionSettleEase)
+                .start()
+        }
+    }
+
     private fun sendPlaybackAction(action: String) {
         startService(Intent(this, PlaybackService::class.java).setAction(action))
     }
@@ -1749,8 +1814,7 @@ class MainActivity : AppCompatActivity() {
 
         listOf(miniCoverFallback, sheetCoverFallback).forEach { it.setTextColor(accent) }
 
-        settingsButton.backgroundTintList = null
-        settingsButton.setColorFilter(ink)
+        updateSettingsButtonState()
         listOf(playPauseButton, sheetPlayPauseButton, prevButton, nextButton).forEach {
             it.backgroundTintList = ColorStateList.valueOf(accent)
             it.setColorFilter(onAccent)
@@ -1782,6 +1846,14 @@ class MainActivity : AppCompatActivity() {
         updateLanguageButtons()
         updateAccentButtons()
         updateModeButtons()
+    }
+
+    private fun updateSettingsButtonState() {
+        if (!::settingsButton.isInitialized) return
+        val settingsActive = ::settingsPanel.isInitialized && settingsPanel.isVisible
+        settingsButton.backgroundTintList = null
+        settingsButton.setColorFilter(if (settingsActive) accentColor() else ContextCompat.getColor(this, R.color.ink))
+        settingsButton.alpha = if (settingsActive) 1f else 0.72f
     }
 
     private fun updateLanguageButtons() {
@@ -1942,8 +2014,9 @@ class MainActivity : AppCompatActivity() {
             }
             settingsPanel.isVisible -> {
                 settingsPanel.isVisible = false
-                pathText.text = currentPathLabel
-                playCollectionButton.isVisible = currentQueue.isNotEmpty()
+                setLibraryContentVisible(true)
+                restoreSectionAfterSettings()
+                updateSettingsButtonState()
                 true
             }
             searchPanel.isVisible -> {

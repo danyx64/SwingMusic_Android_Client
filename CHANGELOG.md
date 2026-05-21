@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.3
+
+- Treated Settings as its own navigation state.
+- Cleared the selected top tab while Settings is open.
+- Highlighted the settings icon while Settings is active.
+- Restored the previous section cleanly when closing Settings.
+
+## 0.2.2
+
+- Fixed top navigation chips being clipped when the selected tab scales.
+- Added clipping-safe spacing to horizontal chip rows.
+- Reduced selected-tab scale slightly to keep the UI crisp at screen edges.
+- Dismissed search keyboard when moving to other tabs or settings.
+- Hid stale library rows while the settings panel is open.
+
 ## 0.2.1
 
 - Fixed seek bar thumb clipping in the mini player and full player.

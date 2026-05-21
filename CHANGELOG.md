@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed seek bar thumb clipping in the mini player and full player.
+- Added a little more vertical room to the mini player progress control.
+
 ## 0.2.0
 
 - Added seekable playback bars in the mini player and full player.

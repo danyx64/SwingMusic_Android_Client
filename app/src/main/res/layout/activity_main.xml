@@ -778,13 +778,15 @@
         <LinearLayout
             android:id="@+id/playerBar"
             android:layout_width="match_parent"
-            android:layout_height="88dp"
+            android:layout_height="92dp"
             android:layout_marginBottom="10dp"
             android:background="@drawable/player_background"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="10dp">
+            android:paddingVertical="8dp">
 
             <FrameLayout
                 android:layout_width="52dp"
@@ -814,6 +816,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:layout_weight="1"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical">
 
                 <TextView
@@ -839,11 +843,10 @@
                 <SeekBar
                     android:id="@+id/miniSeekBar"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
-                    android:layout_marginTop="2dp"
+                    android:layout_height="32dp"
                     android:max="1000"
-                    android:paddingStart="0dp"
-                    android:paddingEnd="0dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
                     android:progress="0" />
             </LinearLayout>
 
@@ -881,6 +884,8 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -950,11 +955,11 @@
         <SeekBar
             android:id="@+id/sheetSeekBar"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="18dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="14dp"
             android:max="1000"
-            android:paddingStart="0dp"
-            android:paddingEnd="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:progress="0" />
 
         <LinearLayout

@@ -1,3 +1,11 @@
+# SwingDroid 0.2.1
+
+## Fixed
+
+- Fixed seek bar thumb clipping at the start of the track.
+- Fixed the same clipping in both the full-screen player and the bottom mini player.
+- Increased the mini player seek area so the thumb has enough vertical room.
+
 # SwingDroid 0.2.0
 
 ## Added

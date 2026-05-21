@@ -24,6 +24,20 @@
         <item name="boxCornerRadiusBottomEnd">18dp</item>
     </style>
 
+    <style name="Widget.SwingMusic.TextInputLayout.Settings" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+        <item name="boxStrokeColor">@color/edge</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">1dp</item>
+        <item name="hintTextColor">@color/muted</item>
+        <item name="android:textColorHint">@color/muted</item>
+        <item name="endIconTint">@color/muted</item>
+        <item name="boxCornerRadiusTopStart">18dp</item>
+        <item name="boxCornerRadiusTopEnd">18dp</item>
+        <item name="boxCornerRadiusBottomStart">18dp</item>
+        <item name="boxCornerRadiusBottomEnd">18dp</item>
+    </style>
+
     <style name="Shape.SwingMusic.Small" parent="ShapeAppearance.MaterialComponents.SmallComponent">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>

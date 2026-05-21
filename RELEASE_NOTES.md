@@ -1,3 +1,24 @@
+# SwingDroid 0.2.4
+
+## Added
+
+- Settings now includes an editable local Home path.
+- The Home tab opens the saved folder path directly.
+
+## Changed
+
+- Home now shows folder contents for the configured path instead of flattening all tracks.
+- Cover artwork uses cleaner clipping with slightly sharper rounded corners.
+- The full-player shuffle icon has been replaced with a clearer line-style icon.
+- Settings text fields render more cleanly when focused.
+- Library rows now reserve stable space for durations and play buttons.
+- Home keeps only the normal play action; shuffle remains in the full player.
+- Library rows are clipped correctly while scrolling, so tracks no longer draw over `/music`, the section play button, or the mini player.
+- Swipe transitions between tabs now reset their animation state after fast gestures.
+- Loading a new tab clears stale rows immediately.
+- The login screen no longer ships with a prefilled local IP.
+- The README now explains how to use the app instead of how to build it.
+
 # SwingDroid 0.2.3
 
 ## Fixed

@@ -2,12 +2,12 @@ package dev.swingmusic.android
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.util.LruCache
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
@@ -107,6 +107,7 @@ class CoverArtLoader {
         cache.get(url)?.let {
             fallbackView?.visibility = View.GONE
             imageView.visibility = View.VISIBLE
+            imageView.setBackgroundColor(Color.TRANSPARENT)
             imageView.setImageBitmap(it)
             return
         }
@@ -120,6 +121,7 @@ class CoverArtLoader {
                 cache.put(url, bitmap)
                 fallbackView?.visibility = View.GONE
                 imageView.visibility = View.VISIBLE
+                imageView.setBackgroundColor(Color.TRANSPARENT)
                 imageView.setImageBitmap(bitmap)
             }
         }
@@ -165,6 +167,7 @@ class CoverArtLoader {
         urls.firstNotNullOfOrNull { url -> cache.get(url)?.let { url to it } }?.let { (_, bitmap) ->
             fallbackView?.visibility = View.GONE
             imageView.visibility = View.VISIBLE
+            imageView.setBackgroundColor(Color.TRANSPARENT)
             imageView.setImageBitmap(bitmap)
             return
         }
@@ -180,6 +183,7 @@ class CoverArtLoader {
                 cache.put(loadedUrl, bitmap)
                 fallbackView?.visibility = View.GONE
                 imageView.visibility = View.VISIBLE
+                imageView.setBackgroundColor(Color.TRANSPARENT)
                 imageView.setImageBitmap(bitmap)
             }
         }
@@ -187,7 +191,7 @@ class CoverArtLoader {
 
     private fun showFallback(imageView: ImageView, fallbackView: TextView?) {
         imageView.setImageDrawable(null)
-        imageView.setBackgroundColor(ContextCompat.getColor(imageView.context, R.color.surface_alt))
+        imageView.setBackgroundResource(R.drawable.cover_background)
         imageView.visibility = if (fallbackView == null) View.VISIBLE else View.GONE
         fallbackView?.visibility = View.VISIBLE
     }

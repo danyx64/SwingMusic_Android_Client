@@ -15,17 +15,17 @@ open class RoundedImageView @JvmOverloads constructor(
     private val clipPath = Path()
     private val rect = RectF()
     protected open val cornerRadius: Float
-        get() = 14f * resources.displayMetrics.density
+        get() = 10f * resources.displayMetrics.density
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
         super.onSizeChanged(width, height, oldWidth, oldHeight)
         rebuildPath(width, height)
     }
 
-    override fun onDraw(canvas: Canvas) {
+    override fun draw(canvas: Canvas) {
         val checkpoint = canvas.save()
         canvas.clipPath(clipPath)
-        super.onDraw(canvas)
+        super.draw(canvas)
         canvas.restoreToCount(checkpoint)
     }
 

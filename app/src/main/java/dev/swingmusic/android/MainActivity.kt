@@ -116,7 +116,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var accentGoldButton: MaterialButton
     private lateinit var accentVioletButton: MaterialButton
     private lateinit var customColorButton: MaterialButton
-    private lateinit var homePathText: TextView
+    private lateinit var homePathInput: TextInputEditText
+    private lateinit var saveHomePathButton: MaterialButton
     private lateinit var rescanButton: MaterialButton
     private lateinit var accountNameInput: TextInputEditText
     private lateinit var accountPasswordInput: TextInputEditText
@@ -156,9 +157,13 @@ class MainActivity : AppCompatActivity() {
     private var shuffleEnabled: Boolean = false
     private var activeTabButton: MaterialButton? = null
     private var sectionBeforeSettings: MaterialButton? = null
+    private var homePathChangedInSettings = false
     private var currentPathLabel: String = "Home"
     private var currentUser: UserProfile? = null
     private var pendingSectionEnterDirection: Int? = null
+    private var sectionAnimationToken = 0
+    private var contentLoadGeneration = 0
+    private var activeLoadingRequests = 0
     private var sectionIsTransitioning = false
     private var swipeStartX = 0f
     private var swipeStartY = 0f
@@ -301,7 +306,8 @@ class MainActivity : AppCompatActivity() {
         accentGoldButton = findViewById(R.id.accentGoldButton)
         accentVioletButton = findViewById(R.id.accentVioletButton)
         customColorButton = findViewById(R.id.customColorButton)
-        homePathText = findViewById(R.id.homePathText)
+        homePathInput = findViewById(R.id.homePathInput)
+        saveHomePathButton = findViewById(R.id.saveHomePathButton)
         rescanButton = findViewById(R.id.rescanButton)
         accountNameInput = findViewById(R.id.accountNameInput)
         accountPasswordInput = findViewById(R.id.accountPasswordInput)
@@ -337,7 +343,9 @@ class MainActivity : AppCompatActivity() {
         libraryList.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = this@MainActivity.adapter
+            setHasFixedSize(true)
             itemAnimator = DefaultItemAnimator().apply {
+                supportsChangeAnimations = false
                 addDuration = 170L
                 removeDuration = 90L
                 moveDuration = 180L
@@ -430,9 +438,19 @@ class MainActivity : AppCompatActivity() {
         })
         newPlaylistButton.setOnClickListener { createPlaylistDialog() }
         playCollectionButton.setOnClickListener { playCurrentQueue() }
+        saveHomePathButton.setOnClickListener { saveHomePath() }
         rescanButton.setOnClickListener { triggerScan() }
         logoutButton.setOnClickListener { logout() }
         saveAccountButton.setOnClickListener { saveAccount() }
+        homePathInput.setOnEditorActionListener { _, actionId, event ->
+            val enterPressed = event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP
+            if (actionId == EditorInfo.IME_ACTION_DONE || enterPressed) {
+                saveHomePath()
+                true
+            } else {
+                false
+            }
+        }
         playPauseButton.setOnClickListener { sendPlaybackAction(PlaybackService.ACTION_TOGGLE) }
         sheetPlayPauseButton.setOnClickListener { sendPlaybackAction(PlaybackService.ACTION_TOGGLE) }
         prevButton.setOnClickListener { sendPlaybackAction(PlaybackService.ACTION_PREVIOUS) }
@@ -479,7 +497,11 @@ class MainActivity : AppCompatActivity() {
                 swipeStartX = event.rawX
                 swipeStartY = event.rawY
                 swipeStartTime = event.eventTime
-                sectionMotionViews().forEach { it.animate().cancel() }
+                if (trackingSectionSwipe) {
+                    resetSectionMotionState()
+                } else {
+                    cancelSectionMotionAnimations()
+                }
                 return false
             }
 
@@ -564,7 +586,17 @@ class MainActivity : AppCompatActivity() {
             appPanel.isVisible &&
             !loginPanel.isVisible &&
             !settingsPanel.isVisible &&
-            !playerSheet.isVisible
+            !playerSheet.isVisible &&
+            activeLoadingRequests == 0
+    }
+
+    private fun nextContentLoadGeneration(): Int {
+        contentLoadGeneration += 1
+        return contentLoadGeneration
+    }
+
+    private fun isCurrentContentLoad(generation: Int): Boolean {
+        return generation == contentLoadGeneration
     }
 
     private fun switchSectionBySwipe(direction: Int) {
@@ -596,9 +628,9 @@ class MainActivity : AppCompatActivity() {
         inputMethodManager.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    private fun hideKeyboard() {
+    private fun hideKeyboard(view: View = queryInput) {
         val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputMethodManager.hideSoftInputFromWindow(queryInput.windowToken, 0)
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun closeSearchInput() {
@@ -606,8 +638,15 @@ class MainActivity : AppCompatActivity() {
         hideKeyboard()
     }
 
+    private fun closeKeyboard(view: View) {
+        view.clearFocus()
+        hideKeyboard(view)
+    }
+
     private fun navigateToSection(target: Int, focusSearch: Boolean = false) {
         if (target != 2) {
+            searchRequestVersion++
+            searchDebounceJob?.cancel()
             closeSearchInput()
         }
         if (settingsPanel.isVisible) {
@@ -617,6 +656,7 @@ class MainActivity : AppCompatActivity() {
         }
         setLibraryContentVisible(true)
         val current = currentSectionIndex()
+        resetSectionMotionState()
         if (target != current) {
             prepareSectionTransition(if (target > current) 1 else -1)
         } else {
@@ -643,11 +683,29 @@ class MainActivity : AppCompatActivity() {
     private fun prepareSectionTransition(direction: Int) {
         pendingSectionEnterDirection = direction.coerceIn(-1, 1).takeIf { it != 0 }
         sectionIsTransitioning = true
+        resetSectionMotionState()
         animateContentOut(direction)
     }
 
-    private fun sectionMotionViews(): List<View> {
-        return listOf(searchPanel, pathText, newPlaylistButton, playCollectionButton, progress, libraryList)
+    private fun sectionAnimatedViews(): List<View> {
+        return listOf(searchPanel, listActions, progress, libraryList)
+    }
+
+    private fun sectionResetViews(): List<View> {
+        return listOf(searchPanel, listActions, pathText, newPlaylistButton, playCollectionButton, progress, libraryList)
+    }
+
+    private fun cancelSectionMotionAnimations() {
+        sectionResetViews().forEach { it.animate().cancel() }
+    }
+
+    private fun resetSectionMotionState() {
+        cancelSectionMotionAnimations()
+        sectionResetViews().forEach { view ->
+            view.alpha = 1f
+            view.translationX = 0f
+            view.translationY = 0f
+        }
     }
 
     private fun applySwipeDrag(dx: Float) {
@@ -657,7 +715,7 @@ class MainActivity : AppCompatActivity() {
         val resistance = if (atStart || atEnd) 0.12f else 0.28f
         val drag = dx * resistance
         val fade = (1f - (abs(dx) / (resources.displayMetrics.widthPixels * 2.2f))).coerceIn(0.78f, 1f)
-        sectionMotionViews().filter { it.isVisible }.forEach { view ->
+        sectionAnimatedViews().filter { it.isVisible }.forEach { view ->
             view.translationX = drag
             view.alpha = fade
         }
@@ -670,15 +728,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun settleSwipeDrag() {
-        sectionMotionViews().filter { it.isVisible }.forEachIndexed { index, view ->
+        val visibleViews = sectionAnimatedViews().filter { it.isVisible }
+        visibleViews.forEachIndexed { index, view ->
+            view.animate().cancel()
             view.animate()
                 .translationX(0f)
                 .alpha(1f)
                 .setStartDelay((index * 10L).coerceAtMost(40L))
                 .setDuration(180L)
                 .setInterpolator(sectionSettleEase)
+                .withEndAction {
+                    if (index == visibleViews.lastIndex) resetSectionMotionState()
+                }
                 .start()
         }
+        if (visibleViews.isEmpty()) resetSectionMotionState()
         activeTabButton?.animate()
             ?.scaleX(selectedTabScale())
             ?.scaleY(selectedTabScale())
@@ -689,7 +753,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun animateContentOut(direction: Int) {
         val distance = (resources.displayMetrics.widthPixels * 0.18f).coerceAtMost(dp(120).toFloat())
-        sectionMotionViews().filter { it.isVisible }.forEachIndexed { index, view ->
+        sectionAnimatedViews().filter { it.isVisible }.forEachIndexed { index, view ->
             view.animate().cancel()
             view.animate()
                 .translationX(-direction * distance)
@@ -702,8 +766,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun animateContentIn(direction: Int) {
+        val token = ++sectionAnimationToken
         val distance = (resources.displayMetrics.widthPixels * 0.16f).coerceAtMost(dp(108).toFloat())
-        val visibleViews = sectionMotionViews().filter { it.isVisible }
+        val visibleViews = sectionAnimatedViews().filter { it.isVisible }
         visibleViews.forEachIndexed { index, view ->
             view.animate().cancel()
             view.translationX = direction * distance
@@ -715,15 +780,29 @@ class MainActivity : AppCompatActivity() {
                 .setDuration(260L)
                 .setInterpolator(sectionEase)
                 .withEndAction {
-                    if (index == visibleViews.lastIndex) sectionIsTransitioning = false
+                    if (index == visibleViews.lastIndex && token == sectionAnimationToken) {
+                        sectionIsTransitioning = false
+                        resetSectionMotionState()
+                    }
                 }
                 .start()
         }
-        if (visibleViews.isEmpty()) sectionIsTransitioning = false
+        if (visibleViews.isEmpty()) {
+            sectionIsTransitioning = false
+            resetSectionMotionState()
+        } else {
+            rootPanel.postDelayed({
+                if (token == sectionAnimationToken) {
+                    sectionIsTransitioning = false
+                    resetSectionMotionState()
+                }
+            }, 380L)
+        }
     }
 
     private fun animateContentRefresh() {
         libraryList.animate().cancel()
+        libraryList.translationX = 0f
         libraryList.alpha = 0.86f
         libraryList.translationY = dp(8).toFloat()
         libraryList.animate()
@@ -731,6 +810,11 @@ class MainActivity : AppCompatActivity() {
             .translationY(0f)
             .setDuration(180L)
             .setInterpolator(sectionSettleEase)
+            .withEndAction {
+                libraryList.alpha = 1f
+                libraryList.translationX = 0f
+                libraryList.translationY = 0f
+            }
             .start()
     }
 
@@ -886,6 +970,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadFolder(folder: String, pushHistory: Boolean) {
+        val loadGeneration = nextContentLoadGeneration()
         selectedPlaylistId = null
         selectedAlbum = null
         selectedTab(foldersButton)
@@ -895,10 +980,12 @@ class MainActivity : AppCompatActivity() {
         playCollectionButton.isVisible = false
         if (pushHistory) folderHistory.add(currentFolder)
         currentFolder = folder
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
                 val response = client.getFolder(folder)
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
                 currentSource = "fo:${response.path}"
                 currentQueue = response.tracks
                 playCollectionButton.isVisible = currentQueue.isNotEmpty()
@@ -909,6 +996,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadHomeTracks() {
+        val loadGeneration = nextContentLoadGeneration()
+        val homePath = appPreferences.homePath()
+        homePathChangedInSettings = false
         selectedPlaylistId = null
         selectedAlbum = null
         selectedTab(foldersButton)
@@ -916,21 +1006,27 @@ class MainActivity : AppCompatActivity() {
         settingsPanel.isVisible = false
         newPlaylistButton.isVisible = false
         playCollectionButton.isVisible = false
-        setPathLabel("Home")
-        currentFolder = "\$home"
+        setPathLabel(displayFolderPath(homePath))
+        currentFolder = homePath
         folderHistory.clear()
-        currentSource = "all"
+        currentSource = "fo:$homePath"
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
-                currentQueue = client.getAllTracks()
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
+                val response = client.getFolder(homePath)
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
+                currentSource = "fo:${response.path}"
+                currentQueue = response.tracks
                 playCollectionButton.isVisible = currentQueue.isNotEmpty()
-                submitRows(trackRows(currentQueue).ifEmpty { messageRow("No tracks found") })
+                setPathLabel(displayFolderPath(response.path))
+                submitRows(buildRows(response))
             }
         }
     }
 
     private fun loadPlaylists() {
+        val loadGeneration = nextContentLoadGeneration()
         selectedPlaylistId = null
         selectedAlbum = null
         selectedTab(playlistsButton)
@@ -941,10 +1037,12 @@ class MainActivity : AppCompatActivity() {
         setPathLabel("Playlists")
         currentQueue = emptyList()
         currentSource = "pl"
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
                 val playlists = client.getPlaylists()
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
                 submitRows(
                     playlists.map {
                         LibraryRow(
@@ -964,6 +1062,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadPlaylist(playlist: PlaylistItem) {
+        val loadGeneration = nextContentLoadGeneration()
         selectedPlaylistId = playlist.id
         selectedAlbum = null
         selectedTab(playlistsButton)
@@ -973,10 +1072,12 @@ class MainActivity : AppCompatActivity() {
         playCollectionButton.isVisible = false
         setPathLabel(playlist.name)
         currentSource = "pl:${playlist.id}"
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
                 currentQueue = client.getPlaylistTracks(playlist.id)
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
                 playCollectionButton.isVisible = currentQueue.isNotEmpty()
                 submitRows(trackRows(currentQueue).ifEmpty { messageRow("This playlist is empty") })
             }
@@ -984,6 +1085,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearSearchResults() {
+        nextContentLoadGeneration()
         searchDebounceJob?.cancel()
         if (!hasSearchRun && lastSearchQuery.isBlank() && lastSearchResults.isEmpty() && currentQueue.isEmpty() && currentPathLabel == "Search") {
             return
@@ -1013,6 +1115,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSearch(focusInput: Boolean) {
+        nextContentLoadGeneration()
         selectedPlaylistId = null
         selectedAlbum = null
         selectedTab(searchButton)
@@ -1063,6 +1166,7 @@ class MainActivity : AppCompatActivity() {
         selectedPlaylistId = null
         selectedAlbum = null
         currentSource = "se:$query"
+        val loadGeneration = nextContentLoadGeneration()
         val requestVersion = ++searchRequestVersion
         if (closeInput) {
             hideKeyboard()
@@ -1077,10 +1181,12 @@ class MainActivity : AppCompatActivity() {
             var completed = false
             var stale = false
             try {
-                runLoading {
+                runLoading(shouldConsumePendingTransition = {
+                    isCurrentContentLoad(loadGeneration) && requestVersion == searchRequestVersion
+                }) {
                     val results = client.searchTracks(query)
                     val typedQuery = queryInput.text?.toString().orEmpty().trim()
-                    if (requestVersion != searchRequestVersion || typedQuery != query) {
+                    if (!isCurrentContentLoad(loadGeneration) || requestVersion != searchRequestVersion || typedQuery != query) {
                         stale = true
                         return@runLoading
                     }
@@ -1107,6 +1213,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadAlbums() {
+        val loadGeneration = nextContentLoadGeneration()
         selectedPlaylistId = null
         selectedAlbum = null
         selectedTab(albumsButton)
@@ -1116,10 +1223,12 @@ class MainActivity : AppCompatActivity() {
         playCollectionButton.isVisible = false
         setPathLabel("Albums")
         currentQueue = emptyList()
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
                 val albums = client.getAlbums()
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
                 submitRows(
                     albums.map {
                         LibraryRow(
@@ -1139,6 +1248,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadAlbumTracks(album: AlbumItem) {
+        val loadGeneration = nextContentLoadGeneration()
         selectedAlbum = album
         selectedPlaylistId = null
         selectedTab(albumsButton)
@@ -1148,10 +1258,12 @@ class MainActivity : AppCompatActivity() {
         playCollectionButton.isVisible = false
         setPathLabel(album.title)
         currentSource = "al:${album.hash}"
+        clearRowsForLoading()
 
         scope.launch {
-            runLoading {
+            runLoading(shouldConsumePendingTransition = { isCurrentContentLoad(loadGeneration) }) {
                 currentQueue = client.getAlbumTracks(album.hash)
+                if (!isCurrentContentLoad(loadGeneration)) return@runLoading
                 playCollectionButton.isVisible = currentQueue.isNotEmpty()
                 submitRows(trackRows(currentQueue).ifEmpty { messageRow("No tracks in album") })
             }
@@ -1171,7 +1283,7 @@ class MainActivity : AppCompatActivity() {
             pathText.text = "Settings"
             clearSelectedTab()
             loadUserProfile()
-            loadHomePath()
+            loadHomePathSetting()
         } else {
             settingsPanel.isVisible = false
             setLibraryContentVisible(true)
@@ -1191,6 +1303,10 @@ class MainActivity : AppCompatActivity() {
     private fun restoreSectionAfterSettings() {
         val restoredTab = sectionBeforeSettings ?: activeTabButton ?: foldersButton
         sectionBeforeSettings = null
+        if (restoredTab == foldersButton && homePathChangedInSettings) {
+            loadHomeTracks()
+            return
+        }
         selectedTab(restoredTab)
         searchPanel.isVisible = restoredTab == searchButton
         if (!searchPanel.isVisible) {
@@ -1201,16 +1317,27 @@ class MainActivity : AppCompatActivity() {
         pathText.text = currentPathLabel
     }
 
-    private fun loadHomePath() {
-        homePathText.text = "Home path: loading"
-        scope.launch {
-            val paths = runCatching { client.getHomePaths() }.getOrDefault(emptyList())
-            homePathText.text = if (paths.isEmpty()) {
-                "Home path: unavailable"
-            } else {
-                "Home path: ${paths.joinToString(", ")}"
-            }
+    private fun loadHomePathSetting() {
+        if (!homePathInput.hasFocus()) {
+            homePathInput.setText(appPreferences.homePath())
         }
+    }
+
+    private fun saveHomePath() {
+        val path = AppPreferences.normalizeHomePath(homePathInput.text?.toString().orEmpty())
+        val previousPath = appPreferences.homePath()
+        homePathInput.setText(path)
+        homePathInput.setSelection(homePathInput.text?.length ?: 0)
+        closeKeyboard(homePathInput)
+
+        if (path == previousPath) {
+            toast("Nothing to save")
+            return
+        }
+
+        appPreferences.saveHomePath(path)
+        homePathChangedInSettings = true
+        toast("Home path saved")
     }
 
     private fun buildRows(response: FolderResponse): List<LibraryRow> {
@@ -1256,12 +1383,19 @@ class MainActivity : AppCompatActivity() {
         return listOf(LibraryRow(kind = RowKind.MESSAGE, title = message))
     }
 
+    private fun clearRowsForLoading() {
+        resetSectionMotionState()
+        adapter.submit(emptyList())
+        libraryList.scrollToPosition(0)
+    }
+
     private fun submitRows(rows: List<LibraryRow>) {
+        val enterDirection = pendingSectionEnterDirection
+        pendingSectionEnterDirection = null
+        resetSectionMotionState()
         adapter.submit(rows)
         libraryList.scrollToPosition(0)
-        val enterDirection = pendingSectionEnterDirection
         if (enterDirection != null) {
-            pendingSectionEnterDirection = null
             animateContentIn(enterDirection)
         } else {
             animateContentRefresh()
@@ -1500,6 +1634,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun logout() {
         sendPlaybackAction(PlaybackService.ACTION_STOP)
+        activeLoadingRequests = 0
+        progress.isVisible = false
         sessionStore.clear()
         adapter.setSession(null)
         currentQueue = emptyList()
@@ -1517,20 +1653,35 @@ class MainActivity : AppCompatActivity() {
         showLogin()
     }
 
-    private suspend fun runLoading(block: suspend () -> Unit) {
+    private suspend fun runLoading(
+        shouldConsumePendingTransition: () -> Boolean = { true },
+        block: suspend () -> Unit
+    ) {
         try {
-            progress.isVisible = true
+            showLoading()
             block()
         } catch (error: Exception) {
             toast(error.message ?: "Something went wrong")
         } finally {
-            progress.isVisible = false
-            if (pendingSectionEnterDirection != null) {
+            hideLoading()
+            if (pendingSectionEnterDirection != null && shouldConsumePendingTransition()) {
                 val direction = pendingSectionEnterDirection ?: 1
                 pendingSectionEnterDirection = null
                 animateContentIn(direction)
+            } else if (pendingSectionEnterDirection == null && !sectionIsTransitioning) {
+                resetSectionMotionState()
             }
         }
+    }
+
+    private fun showLoading() {
+        activeLoadingRequests += 1
+        progress.isVisible = true
+    }
+
+    private fun hideLoading() {
+        activeLoadingRequests = (activeLoadingRequests - 1).coerceAtLeast(0)
+        progress.isVisible = activeLoadingRequests > 0
     }
 
     private fun selectedTab(active: MaterialButton) {
@@ -1541,6 +1692,7 @@ class MainActivity : AppCompatActivity() {
         val ink = ContextCompat.getColor(this, R.color.ink)
         val edge = edgeColor()
         buttons.forEach { button ->
+            button.animate().cancel()
             val selected = button == active
             button.backgroundTintList = ColorStateList.valueOf(if (selected) accent else Color.TRANSPARENT)
             button.setTextColor(if (selected) onAccent else ink)
@@ -1562,6 +1714,7 @@ class MainActivity : AppCompatActivity() {
         val ink = ContextCompat.getColor(this, R.color.ink)
         val edge = edgeColor()
         sectionButtons().forEach { button ->
+            button.animate().cancel()
             button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
             button.setTextColor(ink)
             button.strokeColor = ColorStateList.valueOf(edge)
@@ -1827,7 +1980,7 @@ class MainActivity : AppCompatActivity() {
             it.progressBackgroundTintList = ColorStateList.valueOf(edge)
         }
 
-        listOf(loginButton, runSearchButton, saveAccountButton).forEach {
+        listOf(loginButton, runSearchButton, saveHomePathButton, saveAccountButton).forEach {
             it.backgroundTintList = ColorStateList.valueOf(accent)
             it.setTextColor(onAccent)
             it.strokeColor = ColorStateList.valueOf(accent)

@@ -67,7 +67,6 @@
                             android:layout_height="wrap_content"
                             android:inputType="textUri"
                             android:singleLine="true"
-                            android:text="192.168.1.10"
                             android:textColor="@color/ink"
                             android:textColorHint="@color/muted" />
                     </com.google.android.material.textfield.TextInputLayout>
@@ -635,27 +634,52 @@
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/homePathText"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.SwingMusic.TextInputLayout.Settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:ellipsize="middle"
-                android:maxLines="1"
-                android:text="Home path: loading"
-                android:textColor="@color/ink"
-                android:textSize="14sp" />
+                android:hint="Home path">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/rescanButton"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/homePathInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
+                    android:inputType="textUri"
+                    android:singleLine="true"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/muted" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="8dp"
-                android:text="Rescan library"
-                android:textAllCaps="false"
-                        android:letterSpacing="0"
-                app:cornerRadius="18dp" />
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/saveHomePathButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:text="Save path"
+                    android:textAllCaps="false"
+                    android:letterSpacing="0"
+                    app:cornerRadius="18dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/rescanButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="Rescan"
+                    android:textAllCaps="false"
+                    android:letterSpacing="0"
+                    app:cornerRadius="18dp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/accountSectionTitle"
@@ -675,6 +699,7 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.SwingMusic.TextInputLayout.Settings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Name">
@@ -691,6 +716,7 @@
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.SwingMusic.TextInputLayout.Settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -720,7 +746,7 @@
                     android:layout_weight="1"
                     android:text="Save account"
                     android:textAllCaps="false"
-                        android:letterSpacing="0"
+                    android:letterSpacing="0"
                     app:cornerRadius="18dp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -732,7 +758,7 @@
                     android:layout_weight="1"
                     android:text="Logout"
                     android:textAllCaps="false"
-                        android:letterSpacing="0"
+                    android:letterSpacing="0"
                     app:cornerRadius="18dp" />
             </LinearLayout>
         </LinearLayout>
@@ -792,7 +818,8 @@
             android:layout_height="0dp"
             android:layout_marginTop="8dp"
             android:layout_weight="1"
-            android:clipToPadding="false"
+            android:clipChildren="true"
+            android:clipToPadding="true"
             android:paddingBottom="108dp" />
 
         <LinearLayout
@@ -816,14 +843,14 @@
                     android:id="@+id/miniCoverImage"
                     android:layout_width="52dp"
                     android:layout_height="52dp"
-                    android:background="@drawable/panel_background"
+                    android:background="@drawable/cover_background"
                     android:scaleType="centerCrop" />
 
                 <TextView
                     android:id="@+id/miniCoverFallback"
                     android:layout_width="52dp"
                     android:layout_height="52dp"
-                    android:background="@drawable/panel_background"
+                    android:background="@drawable/cover_background"
                     android:gravity="center"
                     android:text="T"
                     android:textColor="@color/teal"
@@ -917,14 +944,14 @@
                 android:id="@+id/sheetCoverImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/panel_background"
+                android:background="@drawable/cover_background"
                 android:scaleType="centerCrop" />
 
             <TextView
                 android:id="@+id/sheetCoverFallback"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/panel_background"
+                android:background="@drawable/cover_background"
                 android:gravity="center"
                 android:text="@string/app_name"
                 android:textColor="@color/teal"

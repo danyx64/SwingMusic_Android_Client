@@ -27,8 +27,7 @@
                 android:id="@+id/coverImage"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
-                android:background="@drawable/panel_background"
-                android:clipToOutline="true"
+                android:background="@drawable/cover_background"
                 android:contentDescription="Cover"
                 android:scaleType="centerCrop" />
 
@@ -36,7 +35,7 @@
                 android:id="@+id/typeMark"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
-                android:background="@drawable/panel_background"
+                android:background="@drawable/cover_background"
                 android:gravity="center"
                 android:textColor="@color/teal"
                 android:textSize="18sp"
@@ -74,13 +73,13 @@
 
         <TextView
             android:id="@+id/metaText"
-            android:layout_width="wrap_content"
+            android:layout_width="56dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:ellipsize="end"
+            android:gravity="end"
             android:includeFontPadding="false"
             android:maxLines="1"
-            android:maxWidth="82dp"
             android:textColor="@color/gold"
             android:textSize="12sp"
             android:textStyle="bold" />

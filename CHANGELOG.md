@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.4
+
+- Added a local editable Home path setting.
+- Changed the Home tab to open the saved folder path directly instead of showing all tracks.
+- Reloaded Home after saving a new local path from Settings.
+- Cleaned up cover clipping and reduced artwork corner rounding.
+- Replaced the full-player shuffle icon with a clearer line-style version.
+- Fixed library row spacing so track durations cannot collide with play buttons.
+- Cleaned up Settings text fields when focused.
+- Removed the Home shuffle shortcut so the section action always starts normal playback.
+- Fixed library rows drawing over `/music`, the section play button, or the mini player while scrolling.
+- Fixed swipe/tab transitions leaving content faded or shifted after fast gestures.
+- Hid stale rows while a new tab is loading.
+- Removed the prefilled local IP from the login screen for public releases.
+- Rewrote the README as an end-user usage guide.
+
 ## 0.2.3
 
 - Treated Settings as its own navigation state.

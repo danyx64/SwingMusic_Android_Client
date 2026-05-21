@@ -58,10 +58,18 @@ class AppPreferences(context: Context) {
         prefs.edit { putString(KEY_LANGUAGE, choice.storageValue) }
     }
 
+    fun homePath(): String = normalizeHomePath(prefs.getString(KEY_HOME_PATH, null).orEmpty())
+
+    fun saveHomePath(path: String) {
+        prefs.edit { putString(KEY_HOME_PATH, normalizeHomePath(path)) }
+    }
+
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_ACCENT = "accent"
         private const val KEY_LANGUAGE = "language"
+        private const val KEY_HOME_PATH = "home_path"
+        const val DEFAULT_HOME_PATH = "\$home"
         const val DEFAULT_ACCENT = "#F4F4F4"
         val RECOMMENDED_ACCENTS = listOf(
             "#F4F4F4",
@@ -84,6 +92,13 @@ class AppPreferences(context: Context) {
             val clean = value.trim().removePrefix("#")
             if (!Regex("^[0-9a-fA-F]{6}$").matches(clean)) return null
             return "#${clean.uppercase()}"
+        }
+
+        fun normalizeHomePath(value: String): String {
+            val clean = value.trim()
+            if (clean.isBlank()) return DEFAULT_HOME_PATH
+            if (clean == DEFAULT_HOME_PATH) return DEFAULT_HOME_PATH
+            return clean.trimEnd('/').ifBlank { "/" }
         }
     }
 }

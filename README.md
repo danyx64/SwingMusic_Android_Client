@@ -1,62 +1,67 @@
-# SwingMusic Android
+# SwingDroid
 
-Android client for a self-hosted Swing Music server.
+SwingDroid is an Android client for listening to music from a self-hosted Swing Music server.
 
-## Current features
+## Requirements
 
-- Login with custom host/IP, port, and HTTP/HTTPS toggle.
-- JWT login against `POST /auth/login`.
-- Folder browser using `POST /folder`.
-- Track search using Swing Music search API.
-- Albums list and album playback.
-- Playlist list, playlist opening, playlist creation, add track to playlist, remove track from playlist.
-- Foreground background playback service using Android `MediaPlayer`.
-- Authenticated streaming with `Authorization: Bearer <token>`.
-- Playback notifications with previous, play/pause, and next.
-- Seekable playback bar with elapsed time and remaining time.
-- Basic scrobble/play logging to `POST /logger/track/log`.
-- Manual library scan trigger via `/notsettings/trigger-scan`.
+- An Android 8.0 or newer phone.
+- A Swing Music server reachable from the phone.
+- Your server address, port, username, and password.
 
-## Build
+## Installation
 
-This project expects the local Android SDK currently configured in `local.properties`.
+Download the latest APK from the GitHub **Releases** page and open it on your phone. If Android asks for permission, allow installation from unknown sources for the app you are using to open the APK.
 
-```bash
-tools/build_debug_apk.sh
-```
+## First Login
 
-The debug APK is generated at:
+1. Open SwingDroid.
+2. Enter the IP address or hostname of your Swing Music server.
+3. Enter the port, usually `1970`.
+4. Enable HTTPS only if your server is configured for it.
+5. Enter your username and password.
+6. Tap **Connect**.
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
+## Home
 
-## Test from Linux without an emulator
+Home opens the folder configured in **Settings** and shows its contents directly. You can change it from **Settings** using **Home path**.
 
-You cannot run the full native Android UI and background media service on plain Linux without an Android runtime. The practical no-emulator options are:
+Useful examples:
 
-- Use a real Android phone with USB or wireless debugging:
+- `$home` uses the Home folder configured by your Swing Music server.
+- `/music` opens that server-side folder directly.
+- Any valid subfolder path shows the folders and tracks inside it.
 
-```bash
-tools/install_debug_apk.sh --build
-```
+## Playback
 
-- Test the Swing Music server, login, library APIs, playlists, albums, search, and stream URL from Linux:
+- Tap a track to play it.
+- Use the mini player at the bottom for play/pause and seeking.
+- Tap the mini player to open the full-screen player.
+- The full-screen player includes seeking, shuffle, repeat, previous, and next.
+- Remaining track time is shown on the right side of the full-screen player.
 
-```bash
-SWING_BASE_URL=http://127.0.0.1:1970 \
-SWING_USER=your-user \
-SWING_PASS=your-password \
-python3 tools/swing_api_smoke_test.py --query beatles
-```
+## Sections
 
-Add `--probe-stream` to fetch the first bytes of one authenticated track stream. Add `--insecure` only when testing a self-signed HTTPS certificate.
+- **Home**: folders and tracks from your configured Home path.
+- **Playlists**: server playlists, with an option to create a new playlist.
+- **Search**: search tracks in your library.
+- **Albums**: albums available on the server.
+- **Settings**: theme, language, color, Home path, library rescan, and account controls.
 
-- Waydroid can run APKs in an Android container on Linux, so it avoids a classic emulator, but it is still an Android runtime and media/network behavior can differ from a real phone.
+You can switch sections by tapping the top tabs or by swiping horizontally.
 
-## Swing Music compatibility notes
+## Settings
 
-- Recommended server version: `v2.1.4+`.
-- Default server port: `1970`.
-- Cleartext HTTP is enabled for LAN/self-hosted setups.
-- Media streaming requires Bearer auth headers; the app sends them from the playback service.
+In **Settings** you can:
+
+- change the app theme and accent color;
+- choose the interface language;
+- edit the Home path;
+- trigger a library rescan;
+- update your account name or password;
+- log out.
+
+## Notes
+
+- Playback depends on your Swing Music server session. If the server cannot be reached, lists and tracks may keep loading or show an error.
+- Credentials are stored on the device so the app can keep your session active.
+- HTTP is supported for local networks; HTTPS is recommended if your server is exposed outside your LAN.

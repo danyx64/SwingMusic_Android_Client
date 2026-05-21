@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SwingMusic</string>
+    <string name="playback_channel">SwingMusic playback</string>
+</resources>

@@ -1,0 +1,13 @@
+<resources>
+    <color name="ink">#111111</color>
+    <color name="ink_alt">#F1F1F1</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_alt">#F6F6F6</color>
+    <color name="teal">#111111</color>
+    <color name="teal_dark">#3A3A3A</color>
+    <color name="coral">#B3261E</color>
+    <color name="gold">#626262</color>
+    <color name="muted">#6E6E6E</color>
+    <color name="edge">#D8D8D8</color>
+    <color name="glass">#F2FFFFFF</color>
+</resources>

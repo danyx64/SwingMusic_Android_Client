@@ -1,7 +1,6 @@
 # SwingDroid
 
-SwingDroid is an Android client for listening to music from a self-hosted Swing Music server.
-
+Android app for listening to your selfhoster server of SwingMusic.
 ## Requirements
 
 - An Android 8.0 or newer phone.

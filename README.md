@@ -1,4 +1,4 @@
-# SwingDroid
+# SwingMusic client for android
 
 Android app for listening to your selfhoster server of SwingMusic.
 ## Requirements
